@@ -278,7 +278,12 @@ func (r *Resolver) Query(ctx context.Context, bs []byte, from netaddr.IPPort) ([
 		defer cancel()
 		err = r.forwarder.forwardWithDestChan(ctx, packet{bs, from}, responses)
 		if err != nil {
-			return nil, err
+			select {
+			case resp := <-responses:
+				return resp.bs, err
+			default:
+				return nil, err
+			}
 		}
 		return (<-responses).bs, nil
 	}
